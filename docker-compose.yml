@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  web:
+    container_name: "omise_go_phoenix"
+    image: docker.io/benonymus/elixir_docker
+    command: mix phx.server
+    environment:
+      - MIX_ENV=dev
+      - PORT=4000
+      - DATABASE_URL=ecto://postgres:postgres@postgres/omise_phoenix_dev
+    volumes:
+      - .:/app
+    ports:
+      - "4000:4000"
+    links:
+      - postgres
+
+  postgres:
+    image: postgres:9.6-alpine
+    ports:
+      - "5433:5432"
