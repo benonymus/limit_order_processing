@@ -22,17 +22,15 @@ defmodule OmisePhoenix.Orders do
     LimitOrder
     |> LimitOrder.id_in(limit_order_ids)
     |> Repo.all()
-    |> sum_same_prices()
+    |> transactions()
   end
 
-  defp sum_same_prices(limit_orders) do
+  defp transactions(limit_orders) do
     for order <- limit_orders do
       Enum.reduce(
         limit_orders,
         order,
         fn x, y ->
-          IO.inspect(y)
-
           cond do
             Decimal.cmp(x.price, y.price) == :eq and x.id != y.id and x.command == y.command ->
               new_amount = Decimal.add(x.amount, y.amount)
@@ -59,7 +57,6 @@ defmodule OmisePhoenix.Orders do
       )
     end
     |> Enum.filter(&(!is_nil(&1)))
-    |> IO.inspect()
     |> Enum.uniq_by(fn x -> x.price end)
   end
 end
