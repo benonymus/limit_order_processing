@@ -10,9 +10,7 @@ defmodule OmisePhoenixWeb.LimitOrderController do
   def limit_order(conn, %{"orders" => orders}) when is_list(orders) do
     with(
       {:ok, limit_orders} <- Orders.create_limit_orders(orders),
-      limit_order_ids =
-        Map.to_list(limit_orders)
-        |> Enum.map(fn {_, x} -> x.id end),
+      limit_order_ids = get_ids_from_limit_orders(limit_orders),
       limit_orders = Orders.get_limit_orders_by_id_list(limit_order_ids)
     ) do
       conn
@@ -22,5 +20,10 @@ defmodule OmisePhoenixWeb.LimitOrderController do
         limit_orders: limit_orders
       )
     end
+  end
+
+  defp get_ids_from_limit_orders(limit_orders) do
+    Map.to_list(limit_orders)
+    |> Enum.map(fn {_, x} -> x.id end)
   end
 end

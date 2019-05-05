@@ -4,12 +4,14 @@ defmodule OmisePhoenixWeb.LimitOrderView do
 
   def render("limit_orders.json", %{limit_orders: limit_orders}) do
     buy =
-      limit_orders.buy
+      Enum.filter(limit_orders, fn x -> x.command == "buy" end)
       |> render_many(LimitOrderView, "limit_order.json")
+      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :lt))
 
     sell =
-      limit_orders.sell
+      Enum.filter(limit_orders, fn x -> x.command == "sell" end)
       |> render_many(LimitOrderView, "limit_order.json")
+      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :gt))
 
     %{buy: buy, sell: sell}
   end

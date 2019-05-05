@@ -22,21 +22,7 @@ defmodule OmisePhoenix.Orders do
     LimitOrder
     |> LimitOrder.id_in(limit_order_ids)
     |> Repo.all()
-    |> split_buy_and_sell()
-  end
-
-  defp split_buy_and_sell(limit_orders) do
-    buy =
-      Enum.filter(limit_orders, fn x -> x.command == "buy" end)
-      |> sum_same_prices()
-      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :lt))
-
-    sell =
-      Enum.filter(limit_orders, fn x -> x.command == "sell" end)
-      |> sum_same_prices()
-      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :gt))
-
-    %{buy: buy, sell: sell}
+    |> sum_same_prices()
   end
 
   defp sum_same_prices(limit_orders) do
@@ -46,7 +32,7 @@ defmodule OmisePhoenix.Orders do
         order,
         fn x, y ->
           cond do
-            Decimal.cmp(x.price, y.price) == :eq and x.id != y.id ->
+            Decimal.cmp(x.price, y.price) == :eq and x.id != y.id and x.command == y.command ->
               new_amount = Decimal.add(x.amount, y.amount)
               Map.put(y, :amount, new_amount)
 
