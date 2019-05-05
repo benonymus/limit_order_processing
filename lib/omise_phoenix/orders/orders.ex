@@ -31,10 +31,26 @@ defmodule OmisePhoenix.Orders do
         limit_orders,
         order,
         fn x, y ->
+          IO.inspect(y)
+
           cond do
             Decimal.cmp(x.price, y.price) == :eq and x.id != y.id and x.command == y.command ->
               new_amount = Decimal.add(x.amount, y.amount)
               Map.put(y, :amount, new_amount)
+
+            Decimal.cmp(x.price, y.price) == :eq and x.command != y.command ->
+              case Decimal.cmp(x.amount, y.amount) do
+                :gt ->
+                  new_amount = Decimal.sub(x.amount, y.amount)
+                  Map.put(x, :amount, new_amount)
+
+                :lt ->
+                  new_amount = Decimal.sub(y.amount, x.amount)
+                  Map.put(y, :amount, new_amount)
+
+                :eq ->
+                  nil
+              end
 
             true ->
               y
@@ -42,6 +58,8 @@ defmodule OmisePhoenix.Orders do
         end
       )
     end
+    |> Enum.filter(&(!is_nil(&1)))
+    |> IO.inspect()
     |> Enum.uniq_by(fn x -> x.price end)
   end
 end
