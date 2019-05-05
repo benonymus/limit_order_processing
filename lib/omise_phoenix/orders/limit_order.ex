@@ -1,6 +1,7 @@
 defmodule OmisePhoenix.Orders.LimitOrder do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
 
   @command_types ["sell", "buy"]
 
@@ -18,5 +19,11 @@ defmodule OmisePhoenix.Orders.LimitOrder do
     |> cast(attrs, [:command, :price, :amount])
     |> validate_required([:command, :price, :amount])
     |> validate_inclusion(:command, @command_types)
+  end
+
+  # queries
+
+  def id_in(query, ids) do
+    from(lo in query, where: lo.id in ^ids)
   end
 end

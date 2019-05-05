@@ -19,13 +19,43 @@ defmodule OmisePhoenix.Orders do
   end
 
   def get_limit_orders_by_id_list(limit_order_ids) do
-    for id <- limit_order_ids do
-      get_limit_order_by_id(id)
-    end
+    LimitOrder
+    |> LimitOrder.id_in(limit_order_ids)
+    |> Repo.all()
+    |> split_buy_and_sell()
   end
 
-  defp get_limit_order_by_id(id) do
-    LimitOrder
-    |> Repo.get_by(id: id)
+  defp split_buy_and_sell(limit_orders) do
+    buy =
+      Enum.filter(limit_orders, fn x -> x.command == "buy" end)
+      |> sum_same_prices()
+      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :lt))
+
+    sell =
+      Enum.filter(limit_orders, fn x -> x.command == "sell" end)
+      |> sum_same_prices()
+      |> Enum.sort(&(Decimal.cmp(&1.price, &2.price) != :gt))
+
+    %{buy: buy, sell: sell}
+  end
+
+  defp sum_same_prices(limit_orders) do
+    for order <- limit_orders do
+      Enum.reduce(
+        limit_orders,
+        order,
+        fn x, y ->
+          cond do
+            Decimal.cmp(x.price, y.price) == :eq and x.id != y.id ->
+              new_amount = Decimal.add(x.amount, y.amount)
+              Map.put(y, :amount, new_amount)
+
+            true ->
+              y
+          end
+        end
+      )
+    end
+    |> Enum.uniq_by(fn x -> x.price end)
   end
 end
