@@ -6,6 +6,7 @@ defmodule OmisePhoenix.Repo.Migrations.CreateLimitOrders do
       add :command, :string
       add :price, :decimal
       add :amount, :decimal
+      add :completed, :boolean
 
       timestamps()
     end
