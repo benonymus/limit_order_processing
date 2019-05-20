@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  web:
+  omise:
     container_name: "omise_go_phoenix"
     image: docker.io/benonymus/elixir_docker
     command: mix phx.server

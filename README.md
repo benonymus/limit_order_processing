@@ -1,4 +1,17 @@
+
+
+
 # OmisePhoenix
+To start the container:
+  * Clone the repo
+  * Go into omise_phoenix folder
+  * run: docker-compose run --rm --service-ports omise /bin/bash
+  * only for the first time:
+  * ---
+  * mix ecto.create
+  * mix ecto.migrate
+  * ---
+  * mix phx.server
 
 To start your Phoenix server:
 
