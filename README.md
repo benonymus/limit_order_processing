@@ -33,7 +33,9 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
   * Source: https://github.com/phoenixframework/phoenix
 
 ## Start the container by:
-docker-compose up
-or
+
 docker-compose run --rm --service-ports omise /bin/bash
+only for the first time:
+mix ecto.create
+mix ecto.migrate
 and then mix phx.server
