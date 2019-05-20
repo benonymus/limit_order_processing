@@ -2,6 +2,7 @@
 
 
 # OmisePhoenix
+
 To start the container:
   * Clone the repo
   * Go into omise_phoenix folder
@@ -34,5 +35,5 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 ## Start the container by:
 docker-compose up
 or
-docker-compose run --rm --service-ports web /bin/bash
+docker-compose run --rm --service-ports omise /bin/bash
 and then mix phx.server
