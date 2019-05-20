@@ -5,7 +5,6 @@ defmodule OmisePhoenixWeb.LimitOrderController do
   use OmisePhoenixWeb, :controller
 
   alias OmisePhoenix.Orders
-  alias OmisePhoenix.Orders.LimitOrder
   alias OmisePhoenixWeb.LimitOrderView
 
   action_fallback OmisePhoenixWeb.FallbackController

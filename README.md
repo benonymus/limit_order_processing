@@ -9,6 +9,7 @@ To start the container:
   * run: docker-compose run --rm --service-ports omise /bin/bash
   * only for the first time:
   * ---
+  * mix deps.get
   * mix ecto.create
   * mix ecto.migrate
   * ---
