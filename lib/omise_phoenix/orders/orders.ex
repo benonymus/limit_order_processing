@@ -74,28 +74,34 @@ defmodule OmisePhoenix.Orders do
         }
       end)
 
-    multi
-    |> Multi.update(
-      summed_order.id,
+    changeset =
       LimitOrder.changeset_update_amount_completed(order, %{
         completed: summed_order.completed,
         amount: summed_order.amount
       })
+
+    multi
+    |> Multi.update(
+      summed_order.id,
+      changeset
     )
     |> Repo.transaction()
   end
 
   def matching_engine(orders, ids) do
-    Enum.each(orders, fn order ->
+    Enum.map(orders, fn order ->
       order = get_order(order.id)
 
       if order && order.command == "buy" do
-        buy(order, ids)
+        {result, _} = complete_transactions(order, ids)
+        result
       end
     end)
+    |> Enum.filter(& &1)
+    |> Enum.all?(fn x -> x == :ok end)
   end
 
-  defp buy(order, ids) do
+  defp complete_transactions(order, ids) do
     filtered_order_book = get_incomplete_orders(ids, "sell")
 
     possible_sells =
@@ -104,42 +110,64 @@ defmodule OmisePhoenix.Orders do
         Decimal.cmp(x.price, order.price) == :lt or Decimal.cmp(x.price, order.price) == :eq
       end)
 
-    summed_order =
-      Enum.reduce(possible_sells, order, fn x, acc ->
-        if Decimal.cmp(acc.amount, Decimal.new(0)) == :gt do
-          case Decimal.cmp(x.amount, acc.amount) do
+    %{order: summed_order, multi: multi} =
+      Enum.reduce(possible_sells, %{order: order, multi: Multi.new()}, fn x, acc ->
+        if Decimal.cmp(acc.order.amount, Decimal.new(0)) == :gt do
+          case Decimal.cmp(x.amount, acc.order.amount) do
             :eq ->
-              LimitOrder.changeset_update_amount_completed(x, %{completed: true, amount: x.amount})
-              |> Repo.update()
+              changeset =
+                LimitOrder.changeset_update_amount_completed(x, %{
+                  completed: true,
+                  amount: x.amount
+                })
 
-              Map.put(acc, :completed, true)
+              %{
+                order: Map.put(acc.order, :completed, true),
+                multi: Multi.update(acc.multi, x.id, changeset)
+              }
 
             :lt ->
-              new_acc_amount = Decimal.sub(acc.amount, x.amount)
+              new_acc_amount = Decimal.sub(acc.order.amount, x.amount)
 
-              LimitOrder.changeset_update_amount_completed(x, %{completed: true, amount: x.amount})
-              |> Repo.update()
+              changeset =
+                LimitOrder.changeset_update_amount_completed(x, %{
+                  completed: true,
+                  amount: x.amount
+                })
 
-              Map.put(acc, :amount, new_acc_amount)
+              %{
+                order: Map.put(acc.order, :amount, new_acc_amount),
+                multi: Multi.update(acc.multi, x.id, changeset)
+              }
 
             :gt ->
-              new_x_amount = Decimal.sub(x.amount, acc.amount)
+              new_x_amount = Decimal.sub(x.amount, acc.order.amount)
 
-              LimitOrder.changeset_update_amount_completed(x, %{
-                completed: x.completed,
-                amount: new_x_amount
-              })
-              |> Repo.update()
+              changeset =
+                LimitOrder.changeset_update_amount_completed(x, %{
+                  completed: x.completed,
+                  amount: new_x_amount
+                })
 
-              Map.put(acc, :completed, true)
+              %{
+                order: Map.put(acc.order, :completed, true),
+                multi: Multi.update(acc.multi, x.id, changeset)
+              }
           end
         end
       end)
 
-    LimitOrder.changeset_update_amount_completed(order, %{
-      completed: summed_order.completed,
-      amount: summed_order.amount
-    })
-    |> Repo.update()
+    changeset =
+      LimitOrder.changeset_update_amount_completed(order, %{
+        completed: summed_order.completed,
+        amount: summed_order.amount
+      })
+
+    multi
+    |> Multi.update(
+      summed_order.id,
+      changeset
+    )
+    |> Repo.transaction()
   end
 end
