@@ -18,13 +18,13 @@ defmodule OmisePhoenix.Orders do
     |> Repo.transaction()
   end
 
-  defp get_order(id) do
+  def get_limit_orders_by_id_list(ids) do
     LimitOrder
-    |> LimitOrder.incomplete()
-    |> Repo.get_by(id: id)
+    |> LimitOrder.id_in(ids)
+    |> Repo.all()
   end
 
-  defp get_incomplete_orders(ids, command \\ nil) do
+  def get_incomplete_orders(ids, command \\ nil) do
     LimitOrder
     |> LimitOrder.id_in(ids)
     |> LimitOrder.incomplete()
@@ -32,32 +32,24 @@ defmodule OmisePhoenix.Orders do
     |> Repo.all()
   end
 
-  def get_limit_orders_by_id_list(ids) do
+  defp get_order(id) do
     LimitOrder
-    |> LimitOrder.id_in(ids)
-    |> Repo.all()
-    |> matching_engine(ids)
+    |> LimitOrder.incomplete()
+    |> Repo.get_by(id: id)
   end
 
-  defp matching_engine(orders, ids) do
-    Enum.each(orders, fn order ->
+  def add_matching_prices(orders, ids) do
+    Enum.map(orders, fn order ->
       order = get_order(order.id)
 
-      if order do
-        add_same_price(order, ids)
-      end
+      {result, _} = add_same_price(order, ids)
+
+      result
     end)
-
-    Enum.each(orders, fn order ->
-      order = get_order(order.id)
-
-      if order do
-        sell_vs_buy(order, ids)
-      end
-    end)
-
-    get_incomplete_orders(ids)
+    |> Enum.all?(fn x -> x == :ok end)
   end
+
+  defp add_same_price(order, _ids) when is_nil(order), do: {:ok, nil}
 
   defp add_same_price(order, ids) do
     filtered_order_book = get_incomplete_orders(ids, order.command)
@@ -66,27 +58,41 @@ defmodule OmisePhoenix.Orders do
       filtered_order_book
       |> Enum.filter(fn x -> Decimal.cmp(x.price, order.price) == :eq and x.id != order.id end)
 
-    summed_order =
-      Enum.reduce(same_price_orders, order, fn x, acc ->
-        amount_sum = Decimal.add(x.amount, acc.amount)
+    %{order: summed_order, multi: multi} =
+      Enum.reduce(same_price_orders, %{order: order, multi: Multi.new()}, fn x, acc ->
+        amount_sum = Decimal.add(x.amount, acc.order.amount)
 
-        LimitOrder.changeset_update_amount_completed(x, %{completed: true, amount: x.amount})
-        |> Repo.update()
+        changeset =
+          LimitOrder.changeset_update_amount_completed(x, %{
+            completed: true,
+            amount: x.amount
+          })
 
-        Map.put(acc, :amount, amount_sum)
+        %{
+          order: Map.put(acc.order, :amount, amount_sum),
+          multi: Multi.update(acc.multi, x.id, changeset)
+        }
       end)
 
-    LimitOrder.changeset_update_amount_completed(order, %{
-      completed: summed_order.completed,
-      amount: summed_order.amount
-    })
-    |> Repo.update()
+    multi
+    |> Multi.update(
+      summed_order.id,
+      LimitOrder.changeset_update_amount_completed(order, %{
+        completed: summed_order.completed,
+        amount: summed_order.amount
+      })
+    )
+    |> Repo.transaction()
   end
 
-  defp sell_vs_buy(order, ids) do
-    if order.command == "buy" do
-      buy(order, ids)
-    end
+  def matching_engine(orders, ids) do
+    Enum.each(orders, fn order ->
+      order = get_order(order.id)
+
+      if order && order.command == "buy" do
+        buy(order, ids)
+      end
+    end)
   end
 
   defp buy(order, ids) do
