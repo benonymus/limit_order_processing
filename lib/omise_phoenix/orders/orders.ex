@@ -60,7 +60,9 @@ defmodule OmisePhoenix.Orders do
 
     %{order: summed_order, multi: multi} =
       Enum.reduce(same_price_orders, %{order: order, multi: Multi.new()}, fn x, acc ->
-        amount_sum = Decimal.add(x.amount, acc.order.amount)
+        amount_sum =
+          Decimal.add(x.amount, acc.order.amount)
+          |> Decimal.reduce()
 
         changeset =
           LimitOrder.changeset_update_amount_completed(x, %{
@@ -127,7 +129,9 @@ defmodule OmisePhoenix.Orders do
               }
 
             :lt ->
-              new_acc_amount = Decimal.sub(acc.order.amount, x.amount)
+              new_acc_amount =
+                Decimal.sub(acc.order.amount, x.amount)
+                |> Decimal.reduce()
 
               changeset =
                 LimitOrder.changeset_update_amount_completed(x, %{
@@ -141,7 +145,9 @@ defmodule OmisePhoenix.Orders do
               }
 
             :gt ->
-              new_x_amount = Decimal.sub(x.amount, acc.order.amount)
+              new_x_amount =
+                Decimal.sub(x.amount, acc.order.amount)
+                |> Decimal.reduce()
 
               changeset =
                 LimitOrder.changeset_update_amount_completed(x, %{

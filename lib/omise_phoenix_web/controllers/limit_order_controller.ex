@@ -10,7 +10,7 @@ defmodule OmisePhoenixWeb.LimitOrderController do
 
   action_fallback OmisePhoenixWeb.FallbackController
 
-  def limit_order(conn, %{"orders" => orders}) when is_list(orders) do
+  def limit_orders(conn, %{"orders" => orders}) when is_list(orders) do
     with(
       {:ok, limit_orders} <- Orders.create_limit_orders(orders),
       limit_order_ids = get_ids_from_limit_orders(limit_orders),

@@ -7,6 +7,6 @@ defmodule OmisePhoenixWeb.Router do
 
   scope "/api", OmisePhoenixWeb do
     pipe_through :api
-    post("/limit-order", LimitOrderController, :limit_order)
+    post("/limit-orders", LimitOrderController, :limit_orders)
   end
 end

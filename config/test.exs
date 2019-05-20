@@ -11,8 +11,6 @@ config :logger, level: :warn
 
 # Configure your database
 config :omise_phoenix, OmisePhoenix.Repo,
-  username: "postgres",
-  password: "postgres",
-  database: "omise_phoenix_test",
-  hostname: "localhost",
+  adapter: Ecto.Adapters.Postgres,
+  url: System.get_env("DATABASE_URL"),
   pool: Ecto.Adapters.SQL.Sandbox
